@@ -44,6 +44,9 @@ defmodule Thumbs.ThumbnailGenerator do
   def init({caller, parent_ref, parent, opts}) do
     count = Keyword.get(opts, :fps, 60)
 
+    IO.puts("yeah")
+    IO.puts("ffmpeg -i pipe:0 -vf \"fps=1/#{count}\" -f image2pipe -c:v png -")
+
     case exec("ffmpeg -i pipe:0 -vf \"fps=1/#{count}\" -f image2pipe -c:v png -") do
       {:ok, exec_pid, ref} ->
         gen = %ThumbnailGenerator{ref: ref, exec_pid: exec_pid, pid: self(), caller: caller}
@@ -145,6 +148,7 @@ defmodule Thumbs.ThumbnailGenerator do
         if state.current do
           send(caller, {gen_ref, :image, state.count, encode_current(state)})
         end
+
         send(caller, {gen_ref, :ok, state.count})
         state
 

@@ -12,7 +12,6 @@ defmodule Thumbs.Application do
     children =
       [
         ThumbsWeb.Telemetry,
-        Thumbs.Repo,
         !flame_parent &&
           {DNSCluster, query: Application.get_env(:thumbs, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Thumbs.PubSub},
