@@ -5,7 +5,7 @@ defmodule Thumbs.MixProject do
     [
       app: :thumbs,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -50,7 +50,8 @@ defmodule Thumbs.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:erlexec, "~> 2.0"},
       {:req, ">= 0.0.0"},
-      {:flame, "~> 0.1.3"}
+      {:flame, "~> 0.1.3"},
+      {:xmlrpc, "~> 1.3"}
     ]
   end
 

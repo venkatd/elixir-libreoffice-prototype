@@ -9,7 +9,7 @@ defmodule Thumbs.Release do
     load_app()
   end
 
-  def rollback(repo, version) do
+  def rollback() do
     load_app()
   end
 

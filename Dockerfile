@@ -11,9 +11,9 @@
 #   - https://pkgs.org/ - resource for finding needed packages
 #   - Ex: hexpm/elixir:1.15.6-erlang-26.1-debian-bullseye-20230612-slim
 #
-ARG ELIXIR_VERSION=1.15.6
-ARG OTP_VERSION=26.1
-ARG DEBIAN_VERSION=bullseye-20230612-slim
+ARG ELIXIR_VERSION=1.16.2
+ARG OTP_VERSION=26.2.4
+ARG DEBIAN_VERSION=bookworm-20240423-slim
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
@@ -71,6 +71,32 @@ RUN apt-get update -y && \
   apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates ffmpeg \
   && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
+RUN \
+    # Install system dependencies required for the next instructions or debugging.
+    # Note: tini is a helper for reaping zombie processes.
+    apt-get update -qq &&\
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends curl gnupg tini python3 default-jre-headless &&\
+    # Cleanup.
+    # Note: the Debian image does automatically a clean after each install thanks to a hook.
+    # Therefore, there is no need for apt-get clean.
+    # See https://stackoverflow.com/a/24417119/3248473.
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN \
+    # Install LibreOffice & unoconverter.
+    echo "deb http://deb.debian.org/debian bookworm-backports main" >> /etc/apt/sources.list &&\
+    apt-get update -qq &&\
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends -t bookworm-backports libreoffice &&\
+    curl -Ls https://raw.githubusercontent.com/gotenberg/unoconverter/v0.0.1/unoconv -o /usr/bin/unoconverter &&\
+    chmod +x /usr/bin/unoconverter &&\
+    # unoconverter will look for the Python binary, which has to be at version 3.
+    ln -s /usr/bin/python3 /usr/bin/python &&\
+    # Verify installations.
+    libreoffice --version &&\
+    unoconverter --version &&\
+    # Cleanup.
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
@@ -84,6 +110,7 @@ RUN chown nobody /app
 # set runner ENV
 ENV MIX_ENV="prod"
 ENV SHELL="/bin/bash"
+ENV LIBREOFFICE_BIN_PATH /usr/lib/libreoffice/program/soffice.bin
 
 # Only copy the final release from the build stage
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/thumbs ./

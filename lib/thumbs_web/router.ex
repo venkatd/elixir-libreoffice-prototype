@@ -18,6 +18,14 @@ defmodule ThumbsWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive
+
+    # Add your new route here
+  end
+
+  scope "/api", ThumbsWeb do
+    pipe_through :api
+
+    post "/convert/pdf", ConvertController, :convert_to_pdf
   end
 
   # Other scopes may use custom stacks.
