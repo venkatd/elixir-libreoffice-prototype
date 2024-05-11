@@ -21,17 +21,28 @@ defmodule ThumbsWeb.ConvertController do
   end
 
   defp convert_file_to_pdf(filepath) do
-    case System.cmd(Application.fetch_env!(:thumbs, :libreoffice_bin_path), [
-           "--headless",
-           "--convert-to",
-           "pdf",
-           filepath,
-           "--outdir",
-           System.tmp_dir(),
-           filepath
-         ]) do
-      {convert_output, 0} -> {:ok, parse_output_path(convert_output)}
-    end
+    out_path = Path.join(System.tmp_dir(), Path.basename(filepath) <> ".pdf")
+    opts = [
+      in_path: filepath,
+      in_data: nil,
+      out_path: out_path,
+      convert_to: "pdf",
+      filter_name: nil,
+      filter_options: [],
+      update_index: true,
+      in_filter_name: nil
+    ]
+
+    request_body = %XMLRPC.MethodCall{
+      method_name: "convert",
+      params: Keyword.values(opts)
+    }
+    |> XMLRPC.encode!()
+
+
+    Req.post!("http://127.0.0.1:2003", body: request_body)
+
+    {:ok, out_path}
   end
 
   def parse_output_path(soffice_output) do

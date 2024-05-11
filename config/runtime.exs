@@ -20,14 +20,14 @@ if System.get_env("PHX_SERVER") do
   config :thumbs, ThumbsWeb.Endpoint, server: true
 end
 
-config :thumbs, :libreoffice_bin_path, System.get_env("LIBREOFFICE_BIN_PATH") || "soffice"
+config :thumbs, :libreoffice_bin_path, System.fetch_env!("LIBREOFFICE_BIN_PATH")
+config :thumbs, :libreoffice_python_path, System.get_env("LIBREOFFICE_PYTHON_PATH", "python")
+config :thumbs, :libreoffice_unoserver_path, System.fetch_env!("LIBREOFFICE_UNOSERVER_PATH")
 
 if config_env() == :prod do
   config :flame, :backend, FLAME.FlyBackend
   config :flame, FLAME.FlyBackend, token: System.fetch_env!("FLY_API_TOKEN"), boot_timeout: 60_000
   config :flame, :terminator, log: :info
-
-  maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

@@ -22,7 +22,7 @@ defmodule Thumbs.Application do
         # Start to serve requests, typically the last entry
         {Task.Supervisor, name: Thumbs.TaskSup},
         {DynamicSupervisor, name: Thumbs.DynamicSup},
-        # {Unoserver, name: Unoserver},
+        {Unoserver, name: Unoserver},
         {FLAME.Pool,
          name: Thumbs.FFMpegRunner,
          min: 0,

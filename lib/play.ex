@@ -1,9 +1,5 @@
 defmodule Play do
   def run do
-    # /Applications/LibreOffice.app/Contents/Resources/python -m unoserver.server --executable /Applications/LibreOffice.app/Contents/MacOS/soffice
-    # {'inpath': '/Users/venkat/Downloads/StanfordTax-TOS-Revised.docx', 'indata': False, 'outpath': '/Users/venkat/Downloads/dude.pdf',
-    # 'convert_to': 'pdf', 'filtername': None, 'filter_options': [], 'update_index': True, 'infiltername': None}
-
     opts = [
       in_path: "/Users/venkat/Downloads/StanfordTax-TOS-Revised.docx",
       in_data: nil,
