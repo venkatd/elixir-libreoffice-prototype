@@ -26,42 +26,54 @@ defmodule Unoserver do
 
     Port.monitor(port)
 
-    {:ok, %{port: port} }
+    {:ok, %{port: port}}
   end
 
   # This callback handles data incoming from the command's STDOUT
   def handle_info({port, {:data, text_line}}, %{port: port} = state) do
-    Logger.info "Data: #{inspect text_line}"
+    info("Data: #{inspect(text_line)}")
     {:noreply, state}
   end
 
   # Port closed down for some reason
   def handle_info({_port, {:exit_status, status}}, state) do
-    Logger.info "Port exit: :exit_status: #{status}"
+    info("Port exit: :exit_status: #{status}")
     {:noreply, state}
   end
 
   def handle_info({:DOWN, _ref, :port, port, :normal}, state) do
-    Logger.info "Handled :DOWN message from port: #{inspect port}"
+    info("Handled :DOWN message from port: #{inspect(port)}")
     {:noreply, state}
   end
 
   def handle_info({:EXIT, _, :normal}, state) do
-    Logger.info "Trap exit mate"
+    info("Trap exit mate")
     {:stop, :shutdown, state}
   end
 
   def handle_info(msg, state) do
-    Logger.info "Unhandled message: #{inspect msg}"
+    info("Unhandled message: #{inspect(msg)}")
     {:noreply, state}
   end
 
-  def terminate(_reason, %{port: port}) do
-    Logger.info "Terminating Unoserver, kill external process and close port"
-    {:os_pid, process_pid} = Port.info(port, :os_pid)
-    # Kill the process - for some reason process does not shut down
-    System.cmd("kill", ["#{process_pid}"])
+  def terminate(reason, %{port: port}) do
+    info("Terminating Unoserver, kill external process and close port. reason=#{inspect(reason)}")
+
+    case Port.info(port, :os_pid) do
+      # Kill the process - for some reason process does not shut down
+      {:os_pid, process_pid} ->
+        info("Kill unoserver.py process os_pid=#{process_pid}")
+        System.cmd("kill", ["#{process_pid}"])
+
+      nil ->
+        info("No OS process, nothing to kill")
+    end
+
     Port.close(port)
     :ok
+  end
+
+  def info(msg) do
+    Logger.info("Unogenserver: " <> msg)
   end
 end

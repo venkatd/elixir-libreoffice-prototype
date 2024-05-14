@@ -343,6 +343,8 @@ class UnoConverter:
             "com.sun.star.document.TypeDetection", self.context
         )
 
+        logger.info("Started unoconverter")
+
     def find_filter(self, import_type, export_type):
         for export_filter in self.get_available_export_filters():
             if export_filter["DocumentService"] != import_type:
@@ -426,6 +428,8 @@ class UnoConverter:
 
         You must specify the inpath or the indata, and you must specify and outpath or a convert_to.
         """
+        logger.info("Calling convert mate")
+
         input_props = (PropertyValue(Name="ReadOnly", Value=True),)
         if infiltername:
             infilters = self.get_filter_names(self.get_available_import_filters())

@@ -51,7 +51,8 @@ defmodule Thumbs.MixProject do
       {:erlexec, "~> 2.0"},
       {:req, ">= 0.0.0"},
       {:flame, "~> 0.1.3"},
-      {:xmlrpc, "~> 1.3"}
+      {:xmlrpc, "~> 1.3"},
+      {:muontrap, "~> 1.0"}
     ]
   end
 
