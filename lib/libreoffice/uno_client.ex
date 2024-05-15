@@ -33,7 +33,7 @@ defmodule Libreoffice.UnoClient do
     opts = [
       in_path: input,
       out_path: out_path,
-      convert_to: "pdf",
+      convert_to: format,
       filter_name: nil,
       filter_options: [],
       update_index: true

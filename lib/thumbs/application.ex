@@ -7,33 +7,12 @@ defmodule Thumbs.Application do
 
   @impl true
   def start(_type, _args) do
-    flame_parent = FLAME.Parent.get()
-
-    children =
-      [
-        ThumbsWeb.Telemetry,
-        !flame_parent &&
-          {DNSCluster, query: Application.get_env(:thumbs, :dns_cluster_query) || :ignore},
-        {Phoenix.PubSub, name: Thumbs.PubSub},
-        # Start the Finch HTTP client for sending emails
-        !flame_parent && {Finch, name: Thumbs.Finch},
-        # Start a worker by calling: Thumbs.Worker.start_link(arg)
-        # {Thumbs.Worker, arg},
-        # Start to serve requests, typically the last entry
-        {Task.Supervisor, name: Thumbs.TaskSup},
-        {DynamicSupervisor, name: Thumbs.DynamicSup},
-        Libreoffice.SOfficeServer,
-        Libreoffice.UnoClient,
-        {FLAME.Pool,
-         name: Thumbs.FFMpegRunner,
-         min: 0,
-         max: 10,
-         max_concurrency: 5,
-         idle_shutdown_after: 10_000,
-         log: :debug},
-        !flame_parent && ThumbsWeb.Endpoint
-      ]
-      |> Enum.filter(& &1)
+    children = [
+      ThumbsWeb.Telemetry,
+      Libreoffice.SOfficeServer,
+      Libreoffice.UnoClient,
+      ThumbsWeb.Endpoint
+    ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
