@@ -1,20 +1,12 @@
-import io
 import logging
-import os
 import uno
-import unohelper
 
 from pathlib import Path
 from com.sun.star.beans import PropertyValue
-from com.sun.star.io import XOutputStream
 import argparse
 import logging
-import sys
 import xmlrpc.server
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-
-__version__ = "2.1 - hardcoded"
 logger = logging.getLogger("unoserver")
 
 DOC_TYPES = {
@@ -62,36 +54,28 @@ class UnoServer:
             (self.unoserver_host, int(self.unoserver_port)), allow_none=True
         ) as server:
             self.xmlrcp_server = server
-            server.register_introspection_functions()
 
             @server.register_function
             def convert(
                 inpath=None,
-                indata=None,
                 outpath=None,
                 convert_to=None,
                 filtername=None,
                 filter_options=[],
                 update_index=True,
-                infiltername=None,
             ):
-                logger.info("convert brughhhhhh")
-
-                if indata is not None:
-                    indata = indata.data
                 conv = UnoConverter(
                     soffice_host=self.soffice_host, soffice_port=self.soffice_port
                 )
+
                 logger.info("init conv")
                 result = conv.convert(
                     inpath,
-                    indata,
                     outpath,
                     convert_to,
                     filtername,
                     filter_options,
-                    update_index,
-                    infiltername,
+                    update_index
                 )
                 return result
 
@@ -103,19 +87,8 @@ class UnoServer:
             self.xmlrcp_server.shutdown()
 
 
-class OutputStream(unohelper.Base, XOutputStream):
-    def __init__(self):
-        self.buffer = io.BytesIO()
-
-    def closeOutput(self):
-        pass
-
-    def writeBytes(self, seq):
-        self.buffer.write(seq.value)
-
 class UnoConverter:
     def __init__(self, soffice_host, soffice_port):
-        logger.info("Starting unoconverter.")
         self.local_context = uno.getComponentContext()
         self.resolver = self.local_context.ServiceManager.createInstanceWithContext(
             "com.sun.star.bridge.UnoUrlResolver", self.local_context
@@ -172,52 +145,34 @@ class UnoConverter:
 
     def convert(
         self,
-        inpath=None,
-        indata=None,
-        outpath=None,
+        input_path=None,
+        output_path=None,
         convert_to=None,
         filtername=None,
         filter_options=[],
         update_index=True,
-        infiltername=None,
     ):
-        logger.info("Calling convert mate")
-        input_props = (PropertyValue(Name="ReadOnly", Value=True),)
-        if infiltername:
-            infilters = self.get_filter_names(self.get_available_import_filters())
-            if infiltername in infilters:
-                input_props += (
-                    PropertyValue(Name="FilterName", Value=infilters[infiltername]),
-                )
-            else:
-                raise ValueError(
-                    f"There is no '{infiltername}' import filter. Available filters: {sorted(infilters.keys())}"
-                )
+        logger.info("Calling convert function with arguments:")
+        logger.info(f"inpath: {input_path}")
+        logger.info(f"outpath: {output_path}")
+        logger.info(f"convert_to: {convert_to}")
+        logger.info(f"filtername: {filtername}")
+        logger.info(f"filter_options: {filter_options}")
+        logger.info(f"update_index: {update_index}")
 
-        if inpath:
-            if not Path(inpath).exists():
-                raise RuntimeError(f"Path {inpath} does not exist.")
-            logger.info(f"Opening {inpath} for input")
-            import_path = uno.systemPathToFileUrl(os.path.abspath(inpath))
-        elif indata:
-            logger.info("Opening private:stream for input")
-            old_stream = self.service.createInstanceWithContext(
-                "com.sun.star.io.SequenceInputStream", self.context
-            )
-            old_stream.initialize((uno.ByteSequence(indata),))
-            input_props += (PropertyValue(Name="InputStream", Value=old_stream),)
-            import_path = "private:stream"
+        input_props = (PropertyValue(Name="ReadOnly", Value=True),)
+
+        if not Path(input_path).exists():
+            raise RuntimeError(f"Path {input_path} does not exist.")
+
+        logger.info(f"Opening document at {input_path}")
 
         document = self.desktop.loadComponentFromURL(
-            import_path, "_default", 0, input_props
+            "file://" + input_path, "_default", 0, input_props
         )
 
         if document is None:
-            if not inpath:
-                inpath = "<remote file>"
-            if not infiltername:
-                infiltername = "default"
-            error = f"Could not load document {inpath} using the {infiltername} filter."
+            error = f"Could not load document {input_path} using the default filter."
             logger.error(error)
             raise RuntimeError(error)
 
@@ -234,24 +189,15 @@ class UnoConverter:
 
         try:
             import_type = get_doc_type(document)
-            if outpath:
-                export_path = uno.systemPathToFileUrl(os.path.abspath(outpath))
-            else:
-                export_path = "private:stream"
-            if convert_to:
-                export_type = self.type_service.queryTypeByURL(
-                    f"file:///dummy.{convert_to}"
-                )
-            else:
-                export_type = self.type_service.queryTypeByURL(export_path)
+
+            export_type = self.type_service.queryTypeByURL(
+                f"file:///dummy.{convert_to}"
+            )
             if not export_type:
-                if convert_to:
-                    extension = convert_to
-                else:
-                    extension = os.path.splitext(outpath)[-1]
                 raise RuntimeError(
-                    f"Unknown export file type, unknown extension '{extension}'"
+                    f"Unknown export file type, unknown extension '{convert_to}'"
                 )
+            
             if filtername is not None:
                 available_filter_names = self.get_filter_names(
                     self.get_available_export_filters()
@@ -266,10 +212,12 @@ class UnoConverter:
                     raise RuntimeError(
                         f"Could not find an export filter from {import_type} to {export_type}"
                     )
-            logger.info(f"Exporting to {outpath}")
+                
+            logger.info(f"Exporting to {output_path}")
             logger.info(
-                f"Using {filtername} export filter from {infiltername} to {export_type}"
+                f"Using {filtername} export filter to {export_type}"
             )
+
             filter_data = []
             for option in filter_options:
                 option_name, option_value = option.split("=", maxsplit=1)
@@ -284,11 +232,6 @@ class UnoConverter:
                 PropertyValue(Name="FilterName", Value=filtername),
                 PropertyValue(Name="Overwrite", Value=True),
             )
-            if outpath is None:
-                output_stream = OutputStream()
-                output_props += (
-                    PropertyValue(Name="OutputStream", Value=output_stream),
-                )
             if filter_data:
                 output_props += (
                     PropertyValue(
@@ -298,27 +241,17 @@ class UnoConverter:
                         ),
                     ),
                 )
-            document.storeToURL(export_path, output_props)
+            document.storeToURL("file://" + output_path, output_props)
         finally:
             document.close(True)
 
-        if outpath is None:
-            return output_stream.buffer.getvalue()
-        else:
-            return None
+        return None
         
 def main():
     logging.basicConfig()
     logger.setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser("unoserver")
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
-        help="Display version and exit.",
-        version=f"{parser.prog} {__version__}",
-    )
     parser.add_argument(
         "--interface",
         default="127.0.0.1",

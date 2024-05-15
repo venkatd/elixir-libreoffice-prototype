@@ -23,7 +23,7 @@ defmodule Thumbs.Application do
         {Task.Supervisor, name: Thumbs.TaskSup},
         {DynamicSupervisor, name: Thumbs.DynamicSup},
         Libreoffice.SOfficeServer,
-        Libreoffice.UnoServer,
+        Libreoffice.UnoClient,
         {FLAME.Pool,
          name: Thumbs.FFMpegRunner,
          min: 0,

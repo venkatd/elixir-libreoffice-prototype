@@ -2,13 +2,11 @@ defmodule Play do
   def run do
     opts = [
       in_path: "/Users/venkat/Downloads/test.doc",
-      in_data: nil,
       out_path: "/Users/venkat/Downloads/test.doc.pdf",
       convert_to: "pdf",
       filter_name: nil,
       filter_options: [],
-      update_index: true,
-      in_filter_name: nil
+      update_index: true
     ]
 
     params = for {_k, v} <- opts, do: v

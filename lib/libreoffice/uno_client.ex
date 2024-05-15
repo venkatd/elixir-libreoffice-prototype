@@ -1,4 +1,4 @@
-defmodule Libreoffice.UnoServer do
+defmodule Libreoffice.UnoClient do
   use GenServer
   require Logger
 
@@ -9,6 +9,8 @@ defmodule Libreoffice.UnoServer do
 
     "#{python_path} #{unoserver_path}"
   end
+
+  defstruct [:erl_port]
 
   def child_spec(opts) do
     %{
@@ -28,21 +30,15 @@ defmodule Libreoffice.UnoServer do
   def init(_args \\ []) do
     Process.flag(:trap_exit, true)
 
-    # Start the uno server (python lib) which spins up a soffice (libreoffice) instance
-    # and accepts xmlrpc commands
-    # This is faster than loading libreoffice each time
-    port = Port.open({:spawn, command()}, [:binary, :exit_status])
+    erl_port = Port.open({:spawn, command()}, [:binary, :exit_status])
+    Port.monitor(erl_port)
 
-    Port.monitor(port)
-
-    # IO.inspect({port, Port.info(port, :os_pid)})
-
-    {:ok, %{port: port}}
+    {:ok, %__MODULE__{erl_port: erl_port}}
   end
 
   # This callback handles data incoming from the command's STDOUT
   def handle_info({port, {:data, text_line}}, %{port: port} = state) do
-    info("Data: #{inspect(text_line)}")
+    IO.puts(String.trim(text_line))
     {:noreply, state}
   end
 
@@ -67,10 +63,10 @@ defmodule Libreoffice.UnoServer do
     {:noreply, state}
   end
 
-  def terminate(reason, %{port: port}) do
+  def terminate(reason, %{erl_port: erl_port}) do
     info("Terminating Unoserver, kill external process and close port. reason=#{inspect(reason)}")
 
-    case Port.info(port, :os_pid) do
+    case Port.info(erl_port, :os_pid) do
       # Kill the process - for some reason process does not shut down
       {:os_pid, process_pid} ->
         info("Kill unoserver.py process os_pid=#{process_pid}")
@@ -80,7 +76,7 @@ defmodule Libreoffice.UnoServer do
         info("No OS process, nothing to kill")
     end
 
-    Port.close(port)
+    Port.close(erl_port)
     :ok
   end
 

@@ -26,31 +26,12 @@ defmodule Libreoffice.SOfficeServer do
   end
 
   def init(opts) do
-    uno_port = Keyword.get(opts, :port, @default_soffice_port)
+    port = Keyword.get(opts, :port, @default_soffice_port)
+    host = Keyword.get(opts, :host, @default_soffice_host)
 
     bin_path = Application.fetch_env!(:thumbs, :libreoffice_bin_path)
     user_installation_dir = System.tmp_dir!() |> Path.join("libreoffice_user")
     System.cmd("mkdir", ["-p", user_installation_dir])
-
-    #     connection = (
-    #     "socket,host=%s,port=%s,tcpNoDelay=1;urp;StarOffice.ComponentContext"
-    #     % (self.uno_interface, self.uno_port)
-    # )
-
-    # # I think only --headless and --norestore are needed for
-    # # command line usage, but let's add everything to be safe.
-    # cmd = [
-    #     executable,
-    #     "--headless",
-    #     "--invisible",
-    #     "--nocrashreport",
-    #     "--nodefault",
-    #     "--nologo",
-    #     "--nofirststartwizard",
-    #     "--norestore",
-    #     f"-env:UserInstallation={self.user_installation}",
-    #     f"--accept={connection}",
-    # ]
 
     cmd =
       [
@@ -63,13 +44,12 @@ defmodule Libreoffice.SOfficeServer do
         "--nofirststartwizard",
         "--norestore",
         "-env:UserInstallation=file://#{user_installation_dir}",
-        # "socket,host=%s,port=%s,tcpNoDelay=1;urp;StarOffice.ComponentContext"
-        "--accept=\"socket,host=#{@default_soffice_host},port=#{@default_soffice_port},tcpNoDelay=1;urp;StarOffice.ComponentContext\""
+        "--accept=\"socket,host=#{host},port=#{port},tcpNoDelay=1;urp;StarOffice.ComponentContext\""
       ]
 
     Process.flag(:trap_exit, true)
 
-    Logger.info(Enum.join(cmd, " "))
+    # Logger.info(Enum.join(cmd, " "))
     # Start the uno server (python lib) which spins up a soffice (libreoffice) instance
     # and accepts xmlrpc commands
     # This is faster than loading libreoffice each time
