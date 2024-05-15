@@ -8,13 +8,13 @@ defmodule Libreoffice.SOfficeServer do
 
   defstruct [:erl_port]
 
-  @default_interface "127.0.0.1"
-  @default_uno_port 2002
+  @default_soffice_host "127.0.0.1"
+  @default_soffice_port 2002
 
   def child_spec(opts) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
+      start: {__MODULE__, :start_link, [opts ++ [name: __MODULE__]]},
       type: :worker,
       restart: :permanent,
       shutdown: 5000
@@ -26,11 +26,31 @@ defmodule Libreoffice.SOfficeServer do
   end
 
   def init(opts) do
-    uno_port = Keyword.get(opts, :port, @default_uno_port)
+    uno_port = Keyword.get(opts, :port, @default_soffice_port)
 
     bin_path = Application.fetch_env!(:thumbs, :libreoffice_bin_path)
     user_installation_dir = System.tmp_dir!() |> Path.join("libreoffice_user")
     System.cmd("mkdir", ["-p", user_installation_dir])
+
+    #     connection = (
+    #     "socket,host=%s,port=%s,tcpNoDelay=1;urp;StarOffice.ComponentContext"
+    #     % (self.uno_interface, self.uno_port)
+    # )
+
+    # # I think only --headless and --norestore are needed for
+    # # command line usage, but let's add everything to be safe.
+    # cmd = [
+    #     executable,
+    #     "--headless",
+    #     "--invisible",
+    #     "--nocrashreport",
+    #     "--nodefault",
+    #     "--nologo",
+    #     "--nofirststartwizard",
+    #     "--norestore",
+    #     f"-env:UserInstallation={self.user_installation}",
+    #     f"--accept={connection}",
+    # ]
 
     cmd =
       [
@@ -43,11 +63,13 @@ defmodule Libreoffice.SOfficeServer do
         "--nofirststartwizard",
         "--norestore",
         "-env:UserInstallation=file://#{user_installation_dir}",
-        "--accept=socket,host=#{@default_interface},port=#{uno_port},tcpNoDelay=1;urp;StarOffice.ComponentContext"
+        # "socket,host=%s,port=%s,tcpNoDelay=1;urp;StarOffice.ComponentContext"
+        "--accept=\"socket,host=#{@default_soffice_host},port=#{@default_soffice_port},tcpNoDelay=1;urp;StarOffice.ComponentContext\""
       ]
 
     Process.flag(:trap_exit, true)
 
+    Logger.info(Enum.join(cmd, " "))
     # Start the uno server (python lib) which spins up a soffice (libreoffice) instance
     # and accepts xmlrpc commands
     # This is faster than loading libreoffice each time
@@ -92,6 +114,7 @@ defmodule Libreoffice.SOfficeServer do
     case Port.info(erl_port, :os_pid) do
       # Kill the process - for some reason process does not shut down
       {:os_pid, process_pid} ->
+        info("terminating #{process_pid}")
         System.cmd("kill", ["#{process_pid}"])
 
       nil ->

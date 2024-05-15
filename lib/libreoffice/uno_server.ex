@@ -1,14 +1,23 @@
-defmodule Unoserver do
+defmodule Libreoffice.UnoServer do
   use GenServer
   require Logger
 
   def command do
     # todo: pass into start_link
     python_path = Application.fetch_env!(:thumbs, :libreoffice_python_path)
-    bin_path = Application.fetch_env!(:thumbs, :libreoffice_bin_path)
     unoserver_path = Application.fetch_env!(:thumbs, :libreoffice_unoserver_path)
 
-    "#{python_path} #{unoserver_path} --executable #{bin_path}"
+    "#{python_path} #{unoserver_path}"
+  end
+
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts ++ [name: __MODULE__]]},
+      type: :worker,
+      restart: :permanent,
+      shutdown: 5000
+    }
   end
 
   # GenServer API
@@ -25,6 +34,8 @@ defmodule Unoserver do
     port = Port.open({:spawn, command()}, [:binary, :exit_status])
 
     Port.monitor(port)
+
+    # IO.inspect({port, Port.info(port, :os_pid)})
 
     {:ok, %{port: port}}
   end
@@ -74,6 +85,6 @@ defmodule Unoserver do
   end
 
   def info(msg) do
-    Logger.info("Unogenserver: " <> msg)
+    Logger.info("UnoServer: " <> msg)
   end
 end

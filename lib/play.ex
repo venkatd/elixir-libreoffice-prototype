@@ -1,9 +1,9 @@
 defmodule Play do
   def run do
     opts = [
-      in_path: "/tmp/test.doc",
+      in_path: "/Users/venkat/Downloads/test.doc",
       in_data: nil,
-      out_path: "/tmp/test.doc.pdf",
+      out_path: "/Users/venkat/Downloads/test.doc.pdf",
       convert_to: "pdf",
       filter_name: nil,
       filter_options: [],
@@ -20,6 +20,13 @@ defmodule Play do
       }
       |> XMLRPC.encode!()
 
-    Req.post!("http://127.0.0.1:2003", body: request_body)
+    {elapsed, resp} =
+      :timer.tc(fn ->
+        Req.post!("http://127.0.0.1:2003", body: request_body)
+      end)
+
+    IO.puts("finished in #{div(elapsed, 1000)}ms")
+
+    resp
   end
 end
